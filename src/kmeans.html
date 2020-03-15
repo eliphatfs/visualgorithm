@@ -1,7 +1,11 @@
 <html>
-<head><script src="js/lib-echarts/echarts.min.js"></script></head>
+<head><title>K-Means | visualgorithm</title><script src="js/lib-echarts/echarts.min.js"></script></head>
 <body>
-  <div id="main" style="width: 800px; height: 600px;"></div>
+  <div style='margin-bottom: 20px'>
+    Click on any data point to start. 
+    <a href='https://github.com/strongrex2001/visualgorithm/blob/master/src/kmeans.html'>Source</a>
+  </div>
+  <div id="main" style="width: 720px; height: 540px;"></div>
   <script>
     var myChart = echarts.init(document.getElementById('main'), 'light');
     var idata = [];
@@ -128,7 +132,10 @@
     }
     initialize();
     updateChart();
-    kmeans();
+    var started = false;
+    myChart.on('click', function (params) {
+        if (!started) { started = true; kmeans(); }
+    });
   </script>
 </body>
 </html>
