@@ -1,0 +1,134 @@
+<html>
+<head><script src="js/lib-echarts/echarts.min.js"></script></head>
+<body>
+  <div id="main" style="width: 800px; height: 600px;"></div>
+  <script>
+    var myChart = echarts.init(document.getElementById('main'), 'light');
+    var idata = [];
+    var ktitle = 'K-Means';
+    var kdata = {'1': [], '2': [], '1-centroid': [], '2-centroid': []};
+    var ksymbol = {'1': 'circle', '2': 'circle', '1-centroid': 'arrow', '2-centroid': 'arrow'};
+    var color_1 = '#b6a2de'; var color_2 = '#5ab1ef';
+    var kolor = {'1': color_1, '2': color_2, '1-centroid': color_1, '2-centroid': color_2};
+    var ksymbolsize = {'1': 10.0, '2': 10.0, '1-centroid': 20.0, '2-centroid': 20.0};
+    var iter_count = 0;
+    
+    function updateChart() {
+        series_data = []
+        for (var k in kdata) {
+            if (!kdata.hasOwnProperty(k)) continue;
+            series_data.push({
+                name: k,
+                type: 'scatter',
+                data: kdata[k],
+                symbol: ksymbol[k],
+                itemStyle: {color: kolor[k]},
+                symbolSize: ksymbolsize[k],
+                symbolRotate: kdata[k].length > 0 ? Math.atan2(kdata[k][0][1], kdata[k][0][0]) * 180 / 3.141592 - 270: 0.0
+            });
+        }
+        var option = {
+          title: {text: ktitle},
+          tooltip: {formatter: '({c0})'},
+          legend: {data: ["1", "2", "1-centroid", "2-centroid"]},
+          xAxis: {},
+          yAxis: {},
+          series: series_data
+        };
+        myChart.setOption(option);
+    }
+    
+    function initialize() {
+        idata = [];
+        for (var i = 0; i < 50; i++) idata.push([Math.random() * 20.0, Math.random() * 20.0]);
+        for (var i = 0; i < 50; i++) idata.push([-Math.random() * 20.0, -Math.random() * 20.0]);
+        for (var i = 0; i < idata.length; i++) kdata['1'].push(idata[i]);
+        kdata['1-centroid'] = [[-Math.random() * 20.0, Math.random() * 20.0]];
+        kdata['2-centroid'] = [[Math.random() * 20.0, -Math.random() * 20.0]];
+    }
+    
+    function kmeans_iter_centroid() {
+        var centroids = [[0.0, 0.0], [0.0, 0.0]];
+        for (var i = 0; i < kdata['1'].length; i++) {
+            centroids[0][0] += kdata['1'][i][0];
+            centroids[0][1] += kdata['1'][i][1];
+        }
+        for (var i = 0; i < kdata['2'].length; i++) {
+            centroids[1][0] += kdata['2'][i][0];
+            centroids[1][1] += kdata['2'][i][1];
+        }
+        if (kdata['1'].length != 0) {
+            centroids[0][0] /= kdata['1'].length;
+            centroids[0][1] /= kdata['1'].length;
+        }
+        if (kdata['2'].length != 0) {
+            centroids[1][0] /= kdata['2'].length;
+            centroids[1][1] /= kdata['2'].length;
+        }
+        return centroids;
+    }
+    
+    function kmeans_iter(centroids) {
+        var ndataKeep = [[], []];
+        var ndataNew = [[], []];
+        for (var i = 0; i < kdata['1'].length; i++) {
+            if (distance(kdata['1'][i], centroids[0]) < distance(kdata['1'][i], centroids[1])) {
+                ndataKeep[0].push(kdata['1'][i]);
+                ndataNew[0].push(kdata['1'][i]);
+            }
+        }
+        for (var i = 0; i < kdata['1'].length; i++) {
+            if (distance(kdata['1'][i], centroids[0]) >= distance(kdata['1'][i], centroids[1]))
+                ndataNew[1].push(kdata['1'][i]);
+        }
+        for (var i = 0; i < kdata['2'].length; i++) {
+            if (distance(kdata['2'][i], centroids[0]) < distance(kdata['2'][i], centroids[1]))
+                ndataNew[0].push(kdata['2'][i]);
+        }
+        for (var i = 0; i < kdata['2'].length; i++) {
+            if (distance(kdata['2'][i], centroids[0]) >= distance(kdata['2'][i], centroids[1])) {
+                ndataKeep[1].push(kdata['2'][i]);
+                ndataNew[1].push(kdata['2'][i]);
+            }
+        }
+        return [ndataKeep, ndataNew];
+    }
+    
+    function distance(dp1, dp2) {
+        return Math.pow(dp1[0] - dp2[0], 2) + Math.pow(dp1[1] - dp2[1], 2);
+    }
+    
+    function kmeans() {
+        var oldCentroids = [kdata['1-centroid'][0], kdata['2-centroid'][0]];
+        var newCentroids = kmeans_iter_centroid();
+        if (distance(newCentroids[0], oldCentroids[0]) + distance(newCentroids[1], oldCentroids[1]) < 0.2) {
+            return;
+        }
+        else {
+            ++iter_count;
+            ktitle = 'K-Means Iteration ' + iter_count;
+            updateChart();
+            kdata['1-centroid'] = [newCentroids[0]];
+            kdata['2-centroid'] = [newCentroids[1]];
+            var ndata = kmeans_iter(newCentroids);
+            
+            setTimeout(function() {
+                updateChart();
+                kdata['1'] = [];
+                kdata['2'] = [];
+                setTimeout(function() {
+                    updateChart();
+                    kdata['1'] = ndata[1][0];
+                    kdata['2'] = ndata[1][1];
+                    updateChart();
+                    setTimeout(kmeans, 500);
+                }, 300);
+            }, 200);
+        }
+    }
+    initialize();
+    updateChart();
+    kmeans();
+  </script>
+</body>
+</html>
