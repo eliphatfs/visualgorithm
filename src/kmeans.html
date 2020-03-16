@@ -4,12 +4,19 @@
   <meta charset='utf-8' />
   <link type="text/css" rel="stylesheet" href="css/materialize.min.css" media="screen,projection"/>
 </head>
-<body>
-  <div style='margin-bottom: 20px'>
-    Click on any data point to start. 
-    <a href='https://github.com/strongrex2001/visualgorithm/blob/master/src/kmeans.html'>Source</a>
-  </div>
-  <div id="main" style="width: 720px; height: 540px;"></div>
+<body style="background-color: #fafafa">
+  <div class="container"><div class="container">
+    <div class="card white"><div class='card-content'>
+      <span class="card-title">K-Means <a href='https://github.com/strongrex2001/visualgorithm/blob/master/src/kmeans.html'>Source</a></span>
+      <a class="waves-effect waves-light btn btn-small light-blue" onclick="kadd(1)">K +</a>
+      <a class="waves-effect waves-light btn btn-small light-blue" onclick="kadd(-1)">K -</a>
+      <a class="waves-effect waves-light btn btn-small light-blue" onclick="resetData()">Reset</a>
+      <a class="waves-effect waves-light btn btn-small light-blue" onclick="runAlgo()">Run</a>
+    </div></div>
+    <div class="card white" style="height: 85%">
+      <div id="main" style="min-width: 100%; height: 100%; margin: auto auto;"></div>
+    </div>
+  </div></div>
   <script src="js/visual.helpers.js"></script>
   <script src="js/lib-victor/victor.min.js"></script>
   <script src="js/lib-echarts/echarts.min.js"></script>
@@ -20,7 +27,7 @@
     var idata = []; var icentroids = [];  // Data for Manipulation
     var vdata = []; var vcentroids = [];  // Data for Visualization
     
-    var ktitle = 'K-Means';
+    var chartTitle = '';
     
     var seriesMeta = [
         ['name', 'type', 'symbol', 'symbolSize', 'data'],
@@ -48,7 +55,7 @@
     function updateChart() {
         var series = tableToObjectList(seriesMeta);
         var option = {
-            title: {text: ktitle},
+            title: {text: chartTitle},
             tooltip: {formatter: '({c0})'},
             xAxis: {},
             yAxis: {},
@@ -60,6 +67,8 @@
     var iterCount = 0;
     
     function initialize() {
+        iterCount = 0;
+        chartTitle = "";
         idata = []; icentroids = [];
         for (var i = 0; i < randomDataCount; i++)
             idata.push(makePoint(Math.random() * 20.0, Math.random() * 20.0, Math.random() > 0.5 ? 0 : 1));
@@ -96,7 +105,7 @@
     function kmeans(step) {
         if (step === 1) {
             ++iterCount;
-            ktitle = 'K-Means Iteration ' + iterCount;
+            chartTitle = 'Iteration ' + iterCount;
             updateChart();
             return [2, 200];
         }
@@ -119,14 +128,11 @@
         }
     }
     
-    initialize();
-    updateVisualData();
-    updateChart();
+    function resetData() { initialize(); updateVisualData(); updateChart(); }
+    function kadd(dk) { var oldK = K; K += dk; if (K > 7) K = 7; if (K < 2) K = 2; if (K != oldK) resetData(); }
+    function runAlgo() { iterCount = 0; FSM(kmeans, 1); }
     
-    var started = false;
-    myChart.on('click', function (params) {
-        if (!started) { started = true; FSM(kmeans, 1); }
-    });
+    resetData();
   </script>
   <script type="text/javascript" src="js/materialize.min.js"></script>
 </body>
