@@ -77,7 +77,7 @@ function painterActivate(echartInstance, filterByDistance, callback) {
     var remove = function() { down = false; };
     var addto = function() { down = true; };
     var lastActivated = new Victor(0.0, 0.0);
-    echartInstance.getDom().addEventListener('mousemove', function(evt) {
+    var onmove = function(evt) {
         var cmp = canvasMousePos(echartInstance.getDom(), evt);
         var coord = Victor.fromArray(echartInstance.convertFromPixel({xAxisIndex: 0, yAxisIndex: 0}, cmp));
         if (down) {
@@ -86,10 +86,19 @@ function painterActivate(echartInstance, filterByDistance, callback) {
                 lastActivated = coord;
             }
         }
-    }, false);
+    };
+    var touchmove = function(evt) {
+        onmove(evt.touches[0]);
+    };
+    echartInstance.getDom().addEventListener('mousemove', onmove, false);
     echartInstance.getDom().addEventListener('mouseup', remove, false);
     echartInstance.getDom().addEventListener('mouseout', remove, false);
     echartInstance.getDom().addEventListener('mousedown', addto, false);
+    
+    echartInstance.getDom().addEventListener('touchmove', touchmove, false);
+    echartInstance.getDom().addEventListener('touchend', remove, false);
+    echartInstance.getDom().addEventListener('touchcancel', remove, false);
+    echartInstance.getDom().addEventListener('touchstart', addto, false);
 }
 
 var colorPalette = ['#37A2DA', '#fb7293', '#FFDB5C', '#9FE6B8', '#e7bcf3', '#8378EA', '#96BFFF'];
