@@ -64,4 +64,32 @@ function FSM(func, state) {
     }
 }
 
+function canvasMousePos(canvasElm, evt) {
+    var rect = canvasElm.getBoundingClientRect();
+    return [
+        evt.clientX - rect.left,
+        evt.clientY - rect.top
+    ];
+}
+
+function painterActivate(echartInstance, filterByDistance, callback) {
+    var down = false;
+    var remove = function() { down = false; };
+    var addto = function() { down = true; };
+    var lastActivated = new Victor(0.0, 0.0);
+    echartInstance.getDom().addEventListener('mousemove', function(evt) {
+        var cmp = canvasMousePos(echartInstance.getDom(), evt);
+        var coord = Victor.fromArray(echartInstance.convertFromPixel({xAxisIndex: 0, yAxisIndex: 0}, cmp));
+        if (down) {
+            if (lastActivated.distance(coord) >= filterByDistance) {
+                callback(coord.clone());
+                lastActivated = coord;
+            }
+        }
+    }, false);
+    echartInstance.getDom().addEventListener('mouseup', remove, false);
+    echartInstance.getDom().addEventListener('mouseout', remove, false);
+    echartInstance.getDom().addEventListener('mousedown', addto, false);
+}
+
 var colorPalette = ['#37A2DA', '#fb7293', '#FFDB5C', '#9FE6B8', '#e7bcf3', '#8378EA', '#96BFFF'];

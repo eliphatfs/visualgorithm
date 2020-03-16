@@ -11,6 +11,7 @@
       <a class="waves-effect waves-light btn btn-small light-blue" onclick="kadd(1)">K +</a>
       <a class="waves-effect waves-light btn btn-small light-blue" onclick="kadd(-1)">K -</a>
       <a class="waves-effect waves-light btn btn-small light-blue" onclick="resetData()">Reset</a>
+      <a class="waves-effect waves-light btn btn-small light-blue" onclick="clearData()">Clear</a>
       <a class="waves-effect waves-light btn btn-small light-blue" onclick="runAlgo()">Run</a>
     </div></div>
     <div class="card white" style="height: 85%">
@@ -57,8 +58,8 @@
         var option = {
             title: {text: chartTitle},
             tooltip: {formatter: '({c0})'},
-            xAxis: {},
-            yAxis: {},
+            xAxis: {min: -20, max: 20},
+            yAxis: {min: -20, max: 20},
             series: series
         };
         myChart.setOption(option);
@@ -68,7 +69,7 @@
     
     function initialize() {
         iterCount = 0;
-        chartTitle = "";
+        chartTitle = "Explore with your own data by painting!";
         idata = []; icentroids = [];
         for (var i = 0; i < randomDataCount; i++)
             idata.push(makePoint(Math.random() * 20.0, Math.random() * 20.0, Math.random() > 0.5 ? 0 : 1));
@@ -129,10 +130,17 @@
     }
     
     function resetData() { initialize(); updateVisualData(); updateChart(); }
+    function clearData() { idata = []; updateVisualData(); updateChart(); }
     function kadd(dk) { var oldK = K; K += dk; if (K > 7) K = 7; if (K < 2) K = 2; if (K != oldK) resetData(); }
     function runAlgo() { iterCount = 0; FSM(kmeans, 1); }
     
     resetData();
+    
+    painterActivate(myChart, 1.6, function(coord) {
+        for (var i = 0; i < 3; i++)
+            idata.push({pos: coord.add(new Victor(Math.random() * 1.6 - 0.8, Math.random() * 1.6 - 0.8)), clazz: 0});
+        updateVisualData(); updateChart();
+    });
   </script>
   <script type="text/javascript" src="js/materialize.min.js"></script>
 </body>
