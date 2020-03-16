@@ -1,141 +1,133 @@
 <html>
-<head><title>K-Means | visualgorithm</title><script src="js/lib-echarts/echarts.min.js"></script></head>
+<head>
+  <title>K-Means | visualgorithm</title>
+  <meta charset='utf-8' />
+  <link type="text/css" rel="stylesheet" href="css/materialize.min.css" media="screen,projection"/>
+</head>
 <body>
   <div style='margin-bottom: 20px'>
     Click on any data point to start. 
     <a href='https://github.com/strongrex2001/visualgorithm/blob/master/src/kmeans.html'>Source</a>
   </div>
   <div id="main" style="width: 720px; height: 540px;"></div>
+  <script src="js/visual.helpers.js"></script>
+  <script src="js/lib-victor/victor.min.js"></script>
+  <script src="js/lib-echarts/echarts.min.js"></script>
   <script>
+    var threshold = 0.2; var randomDataCount = 50; var K = 2;
+    
     var myChart = echarts.init(document.getElementById('main'), 'light');
-    var idata = [];
+    var idata = []; var icentroids = [];  // Data for Manipulation
+    var vdata = []; var vcentroids = [];  // Data for Visualization
+    
     var ktitle = 'K-Means';
-    var kdata = {'1': [], '2': [], '1-centroid': [], '2-centroid': []};
-    var ksymbol = {'1': 'circle', '2': 'circle', '1-centroid': 'arrow', '2-centroid': 'arrow'};
-    var color_1 = '#b6a2de'; var color_2 = '#5ab1ef';
-    var kolor = {'1': color_1, '2': color_2, '1-centroid': color_1, '2-centroid': color_2};
-    var ksymbolsize = {'1': 10.0, '2': 10.0, '1-centroid': 20.0, '2-centroid': 20.0};
-    var iter_count = 0;
+    
+    var seriesMeta = [
+        ['name', 'type', 'symbol', 'symbolSize', 'data'],
+        ['data', 'scatter', 'circle', 10.0, vdata],
+        ['centroids', 'scatter', 'arrow', 20.0, vcentroids]
+    ];
+    
+    function makePoint(x, y, clazz) {
+        return { pos: new Victor(x, y), clazz: clazz };
+    }
+    
+    function dataPointVisualMapper(obj) {
+        return {
+            value: [obj.pos.x, obj.pos.y],
+            itemStyle: {color: colorPalette[obj.clazz]},
+            symbolRotate: obj.pos.angleDeg() - 270.0
+        };
+    }
+    
+    function updateVisualData() {
+        replaceArrayContents(vdata, idata.map(dataPointVisualMapper));
+        replaceArrayContents(vcentroids, icentroids.map(dataPointVisualMapper));
+    }
     
     function updateChart() {
-        series_data = []
-        for (var k in kdata) {
-            if (!kdata.hasOwnProperty(k)) continue;
-            series_data.push({
-                name: k,
-                type: 'scatter',
-                data: kdata[k],
-                symbol: ksymbol[k],
-                itemStyle: {color: kolor[k]},
-                symbolSize: ksymbolsize[k],
-                symbolRotate: kdata[k].length > 0 ? Math.atan2(kdata[k][0][1], kdata[k][0][0]) * 180 / 3.141592 - 270: 0.0
-            });
-        }
+        var series = tableToObjectList(seriesMeta);
         var option = {
-          title: {text: ktitle},
-          tooltip: {formatter: '({c0})'},
-          legend: {data: ["1", "2", "1-centroid", "2-centroid"]},
-          xAxis: {},
-          yAxis: {},
-          series: series_data
+            title: {text: ktitle},
+            tooltip: {formatter: '({c0})'},
+            xAxis: {},
+            yAxis: {},
+            series: series
         };
         myChart.setOption(option);
     }
     
+    var iterCount = 0;
+    
     function initialize() {
-        idata = [];
-        for (var i = 0; i < 50; i++) idata.push([Math.random() * 20.0, Math.random() * 20.0]);
-        for (var i = 0; i < 50; i++) idata.push([-Math.random() * 20.0, -Math.random() * 20.0]);
-        for (var i = 0; i < idata.length; i++) kdata['1'].push(idata[i]);
-        kdata['1-centroid'] = [[-Math.random() * 20.0, Math.random() * 20.0]];
-        kdata['2-centroid'] = [[Math.random() * 20.0, -Math.random() * 20.0]];
+        idata = []; icentroids = [];
+        for (var i = 0; i < randomDataCount; i++)
+            idata.push(makePoint(Math.random() * 20.0, Math.random() * 20.0, Math.random() > 0.5 ? 0 : 1));
+        for (var i = 0; i < randomDataCount; i++)
+            idata.push(makePoint(-Math.random() * 20.0, -Math.random() * 20.0, Math.random() > 0.5 ? 1 : 0));
+        for (var i = 0; i < K; i++)
+            icentroids.push(makePoint(Math.random() * 40.0 - 20.0, Math.random() * 40.0 - 20.0, i));
     }
     
-    function kmeans_iter_centroid() {
-        var centroids = [[0.0, 0.0], [0.0, 0.0]];
-        for (var i = 0; i < kdata['1'].length; i++) {
-            centroids[0][0] += kdata['1'][i][0];
-            centroids[0][1] += kdata['1'][i][1];
+    function kmeansIterCentroid() {
+        var centroids = filledArray(K, new Victor(0.0, 0.0).clone);
+        var counts = filledArray(K, 0);
+        
+        for (var i = 0; i < idata.length; i++) {
+            centroids[idata[i].clazz].add(idata[i].pos);
+            counts[idata[i].clazz] += 1;
         }
-        for (var i = 0; i < kdata['2'].length; i++) {
-            centroids[1][0] += kdata['2'][i][0];
-            centroids[1][1] += kdata['2'][i][1];
-        }
-        if (kdata['1'].length != 0) {
-            centroids[0][0] /= kdata['1'].length;
-            centroids[0][1] /= kdata['1'].length;
-        }
-        if (kdata['2'].length != 0) {
-            centroids[1][0] /= kdata['2'].length;
-            centroids[1][1] /= kdata['2'].length;
-        }
-        return centroids;
+        for (var i = 0; i < counts.length; i++)
+            if (counts[i] != 0)
+                centroids[i].divide(new Victor(counts[i], counts[i]));
+
+        return centroids.map(function (val, index) { return { pos: val, clazz: index }; });
     }
     
-    function kmeans_iter(centroids) {
-        var ndataKeep = [[], []];
-        var ndataNew = [[], []];
-        for (var i = 0; i < kdata['1'].length; i++) {
-            if (distance(kdata['1'][i], centroids[0]) < distance(kdata['1'][i], centroids[1])) {
-                ndataKeep[0].push(kdata['1'][i]);
-                ndataNew[0].push(kdata['1'][i]);
-            }
-        }
-        for (var i = 0; i < kdata['1'].length; i++) {
-            if (distance(kdata['1'][i], centroids[0]) >= distance(kdata['1'][i], centroids[1]))
-                ndataNew[1].push(kdata['1'][i]);
-        }
-        for (var i = 0; i < kdata['2'].length; i++) {
-            if (distance(kdata['2'][i], centroids[0]) < distance(kdata['2'][i], centroids[1]))
-                ndataNew[0].push(kdata['2'][i]);
-        }
-        for (var i = 0; i < kdata['2'].length; i++) {
-            if (distance(kdata['2'][i], centroids[0]) >= distance(kdata['2'][i], centroids[1])) {
-                ndataKeep[1].push(kdata['2'][i]);
-                ndataNew[1].push(kdata['2'][i]);
-            }
-        }
-        return [ndataKeep, ndataNew];
+    function kmeansIterData() {
+        return idata.map(function(x) {
+            return {
+                pos: x.pos,
+                clazz: argMin(icentroids, function (cent) { return x.pos.distance(cent.pos); })
+            };
+        });
     }
     
-    function distance(dp1, dp2) {
-        return Math.pow(dp1[0] - dp2[0], 2) + Math.pow(dp1[1] - dp2[1], 2);
-    }
-    
-    function kmeans() {
-        var oldCentroids = [kdata['1-centroid'][0], kdata['2-centroid'][0]];
-        var newCentroids = kmeans_iter_centroid();
-        if (distance(newCentroids[0], oldCentroids[0]) + distance(newCentroids[1], oldCentroids[1]) < 0.2) {
-            return;
-        }
-        else {
-            ++iter_count;
-            ktitle = 'K-Means Iteration ' + iter_count;
+    function kmeans(step) {
+        if (step === 1) {
+            ++iterCount;
+            ktitle = 'K-Means Iteration ' + iterCount;
             updateChart();
-            kdata['1-centroid'] = [newCentroids[0]];
-            kdata['2-centroid'] = [newCentroids[1]];
-            var ndata = kmeans_iter(newCentroids);
+            return [2, 200];
+        }
+        if (step === 2) {
+            idata = kmeansIterData();
+            updateVisualData();
+            updateChart();
+            return [3, 500];
+        }
+        if (step === 3) {
+            var oldCentroids = icentroids;
+            icentroids = kmeansIterCentroid();
+            updateVisualData();
+            updateChart();
             
-            setTimeout(function() {
-                updateChart();
-                kdata['1'] = [];
-                kdata['2'] = [];
-                setTimeout(function() {
-                    updateChart();
-                    kdata['1'] = ndata[1][0];
-                    kdata['2'] = ndata[1][1];
-                    updateChart();
-                    setTimeout(kmeans, 500);
-                }, 300);
-            }, 200);
+            var delta = 0.0;
+            for (var i = 0; i < K; i++) delta += oldCentroids[i].pos.distance(icentroids[i].pos);
+            if (delta < threshold) return [null, null];
+            else return [1, 600];
         }
     }
+    
     initialize();
+    updateVisualData();
     updateChart();
+    
     var started = false;
     myChart.on('click', function (params) {
-        if (!started) { started = true; kmeans(); }
+        if (!started) { started = true; FSM(kmeans, 1); }
     });
   </script>
+  <script type="text/javascript" src="js/materialize.min.js"></script>
 </body>
 </html>
