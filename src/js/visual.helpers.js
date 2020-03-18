@@ -72,6 +72,20 @@ function canvasMousePos(canvasElm, evt) {
     ];
 }
 
+function simpleSlider(sliderElm, dispElm, rangeMin, rangeMax, rangeDefault, updater) {
+    noUiSlider.create(sliderElm, {
+        start: [rangeDefault],
+        connect: true,
+        range: {
+            'min': [rangeMin],
+            'max': [rangeMax]
+        }
+    });
+    sliderElm.noUiSlider.on('update', function (values, handle) {
+        dispElm.innerHTML = updater(values[handle]).toFixed(4);
+    });
+}
+
 function painterActivate(echartInstance, filterByDistance, callback) {
     var down = false;
     var remove = function() { down = false; };
